@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import MECore
 
 typealias DownloadServiceCompletion = (_ url: URL,_ localURL: URL,_ error: Error?)->()
   

@@ -1,7 +1,7 @@
     import XCTest
-    @testable import MEFramework
+    @testable import MECache
 
-    final class MEFrameworkTests: XCTestCase {
+    final class MECacheTests: XCTestCase {
         func testExample() {
             // TODO: implement
         }
