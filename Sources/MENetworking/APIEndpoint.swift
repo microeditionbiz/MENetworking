@@ -14,18 +14,15 @@ public struct APIEndpoint<ResultType: Decodable> {
     public let path: String
     public let method: HTTPMethod
     public let queryParameters: [String: CustomStringConvertible]?
-    public let bodyData: Data?
 
     public init(
         path: String,
         method: HTTPMethod = .get,
-        queryParameters: [String: CustomStringConvertible]? = nil,
-        bodyData: Data? = nil
+        queryParameters: [String: CustomStringConvertible]? = nil
     ) {
         self.path = path
         self.method = method
         self.queryParameters = queryParameters
-        self.bodyData = bodyData
     }
 
     public func createURLRequest(baseURL: URL) -> URLRequest {
@@ -38,7 +35,7 @@ public struct APIEndpoint<ResultType: Decodable> {
         return URLRequestBuilder
             .init(with: url)
             .with(httpMethod: method)
-            .with(httpBody: bodyData)
+            .with(httpBody: method.bodyData)
             .build()
     }
 }

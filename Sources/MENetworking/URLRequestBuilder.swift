@@ -8,22 +8,30 @@
 import Foundation
 import MECore
 
-public enum HTTPMethod: String {
+public enum HTTPMethod {
     case get
-    case post
-    case put
+    case post(Data?)
+    case put(Data?)
     case patch
     case delete
     case head
 
-    public var rawValue: String {
+    public var stringRepresentation: String {
         switch self {
         case .get: return "GET"
         case .post: return "POST"
         case .put: return "PUT"
         case .patch: return "PATCH"
         case .delete: return "DELETE"
-        case .head: return "head"
+        case .head: return "HEAD"
+        }
+    }
+
+    public var bodyData: Data? {
+        switch self {
+        case .get, .patch, .delete, .head: return nil
+        case let .post(data): return data
+        case let .put(data): return data
         }
     }
 }
@@ -77,7 +85,7 @@ public final class URLRequestBuilder: Builder {
     }
 
     public func with(httpMethod: HTTPMethod) -> Self {
-        urlRequest.httpMethod = httpMethod.rawValue
+        urlRequest.httpMethod = httpMethod.stringRepresentation
         return self
     }
 
