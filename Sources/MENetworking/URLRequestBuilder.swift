@@ -39,12 +39,12 @@ public final class URLBuilder: Builder {
         self.urlComponents = urlComponents
     }
 
-    public func withPath(_ path: String) -> Self {
+    public func with(path: String) -> Self {
         urlComponents.path = path
         return self
     }
 
-    public func appendQueryParams(_ params: [String: CustomStringConvertible]?) -> Self {
+    public func with(queryParams params: [String: CustomStringConvertible]?) -> Self {
         guard let params = params, !params.isEmpty else { return self }
 
         let queryItems: [URLQueryItem] = params.map {
@@ -76,17 +76,17 @@ public final class URLRequestBuilder: Builder {
         urlRequest = .init(url: url)
     }
 
-    public func withHTTPMethod(_ httpMethod: HTTPMethod) -> Self {
+    public func with(httpMethod: HTTPMethod) -> Self {
         urlRequest.httpMethod = httpMethod.rawValue
         return self
     }
 
-    public func withHTTPBody(_ httpBody: Data?) -> Self {
+    public func with(httpBody: Data?) -> Self {
         urlRequest.httpBody = httpBody
         return self
     }
 
-    public func withHTTPBodyObject<ObjectType: Encodable>(_ value: ObjectType, encoder: JSONEncoder = .init()) -> Self {
+    public func with<ObjectType: Encodable>(httpBodyObject value: ObjectType, encoder: JSONEncoder = .init()) -> Self {
         do {
             let data = try encoder.encode(value)
             urlRequest.httpBody = data

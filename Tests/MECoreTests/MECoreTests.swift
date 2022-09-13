@@ -1,8 +1,8 @@
-    import XCTest
-    @testable import MECore
+import XCTest
+@testable import MECore
 
-    final class MECoreTests: XCTestCase {
-        func testExample() {
-            // TODO: implement
-        }
+final class MECoreTests: XCTestCase {
+    func testExample() {
+        // TODO: implement
     }
+}

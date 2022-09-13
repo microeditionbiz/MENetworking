@@ -1,8 +1,8 @@
-    import XCTest
-    @testable import MECache
+import XCTest
+@testable import MECache
 
-    final class MECacheTests: XCTestCase {
-        func testExample() {
-            // TODO: implement
-        }
+final class MECacheTests: XCTestCase {
+    func testExample() {
+        // TODO: implement
     }
+}

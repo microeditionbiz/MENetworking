@@ -31,14 +31,14 @@ public struct APIEndpoint<ResultType: Decodable> {
     public func createURLRequest(baseURL: URL) -> URLRequest {
         let url = URLBuilder
             .init(with: baseURL)
-            .withPath(path)
-            .appendQueryParams(queryParameters)
+            .with(path: path)
+            .with(queryParams: queryParameters)
             .build()
 
         return URLRequestBuilder
             .init(with: url)
-            .withHTTPMethod(method)
-            .withHTTPBody(bodyData)
+            .with(httpMethod: method)
+            .with(httpBody: bodyData)
             .build()
     }
 }

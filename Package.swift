@@ -7,7 +7,8 @@ let package = Package(
     name: "MEFramework",
     platforms: [.iOS(.v14)],
     products: [
-        .library(name: "MEFramework", targets: ["MECache", "MENetworking", /*"MERemoteImage",*/ "MECore"]),
+//        .library(name: "MECache", targets: ["MECache"]),
+        .library(name: "MENetworking", targets: ["MENetworking"]),
     ],
     dependencies: [
         // .package(url: /* package url */, from: "1.0.0"),

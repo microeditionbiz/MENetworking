@@ -1,8 +1,8 @@
-    import XCTest
-    @testable import MENetworking
+import XCTest
+@testable import MENetworking
 
-    final class MENetworkingTests: XCTestCase {
-        func testExample() {
-            // TODO: implement
-        }
+final class MENetworkingTests: XCTestCase {
+    func testExample() {
+        // TODO: implement
     }
+}

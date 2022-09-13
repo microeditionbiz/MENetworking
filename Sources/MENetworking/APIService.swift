@@ -30,7 +30,7 @@ public protocol APIServiceProtocol {
     func execute<ResultType: Decodable>(
         endpoint: APIEndpoint<ResultType>,
         decoder: JSONDecoder,
-        completion: @escaping (Result<ResultType, Error>)->Void
+        completion: @escaping (Result<ResultType, Error>) -> Void
     ) -> Cancellable
 }
 
