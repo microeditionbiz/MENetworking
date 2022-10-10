@@ -33,11 +33,29 @@ public protocol APIServiceProtocol {
     ) -> Cancellable
 }
 
+public extension APIServiceProtocol {
+    @discardableResult
+    func execute<ResultType: Decodable>(
+        endpoint: APIEndpoint<ResultType>,
+        completion: @escaping (Result<ResultType, Error>) -> Void
+    ) -> Cancellable {
+        execute(endpoint: endpoint, decoder: .init(), completion: completion)
+    }
+}
+
 public protocol APIServiceAsyncProtocol {
     func execute<ResultType: Decodable>(
         endpoint: APIEndpoint<ResultType>,
         decoder: JSONDecoder
     ) async throws -> ResultType
+}
+
+public extension APIServiceAsyncProtocol {
+    func execute<ResultType: Decodable>(
+        endpoint: APIEndpoint<ResultType>
+    ) async throws -> ResultType {
+        try await execute(endpoint: endpoint, decoder: .init())
+    }
 }
 
 public final class APIService {
@@ -56,7 +74,7 @@ extension APIService: APIServiceProtocol {
     @discardableResult
     public func execute<ResultType: Decodable>(
         endpoint: APIEndpoint<ResultType>,
-        decoder: JSONDecoder = .init(),
+        decoder: JSONDecoder,
         completion: @escaping (Result<ResultType, Error>) -> Void
     ) -> Cancellable {
 
