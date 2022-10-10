@@ -1,13 +1,12 @@
 //
 //  APIService.swift
-//  MEKit
+//  MENetworking
 //
 //  Created by Pablo Ezequiel Romero Giovannoni on 23/11/2019.
 //  Copyright © 2019 Pablo Ezequiel Romero Giovannoni. All rights reserved.
 //
 
 import Foundation
-import MECore
 
 public enum APIServiceError: Error {
     case emptyData
@@ -34,7 +33,14 @@ public protocol APIServiceProtocol {
     ) -> Cancellable
 }
 
-public final class APIService: APIServiceProtocol {
+public protocol APIServiceAsyncProtocol {
+    func execute<ResultType: Decodable>(
+        endpoint: APIEndpoint<ResultType>,
+        decoder: JSONDecoder
+    ) async throws -> ResultType
+}
+
+public final class APIService {
     public let baseURL: URL
     public let interceptors: [Interceptor]?
 
@@ -42,7 +48,11 @@ public final class APIService: APIServiceProtocol {
         self.baseURL = baseURL
         self.interceptors = interceptors
     }
-    
+
+}
+
+extension APIService: APIServiceProtocol {
+
     @discardableResult
     public func execute<ResultType: Decodable>(
         endpoint: APIEndpoint<ResultType>,
@@ -51,11 +61,10 @@ public final class APIService: APIServiceProtocol {
     ) -> Cancellable {
 
         let urlRequest = interceptors?.reduce(endpoint.createURLRequest(baseURL: baseURL)) { partialResult, interceptor in
-            guard let before = interceptor.before else { return partialResult }
-            return before(partialResult)
+            interceptor.before.map { $0(partialResult) } ?? partialResult
         } ?? endpoint.createURLRequest(baseURL: baseURL)
 
-        let dataTask = URLSession.shared.dataTask(with: urlRequest) { data, URLResponse, error in
+        let dataTask = URLSession.shared.dataTask(with: urlRequest) { data, _, error in
             if let error = error {
                 completion(.failure(error))
             } else {
@@ -75,6 +84,25 @@ public final class APIService: APIServiceProtocol {
         dataTask.resume()
 
         return dataTask
+    }
+    
+}
+
+extension APIService: APIServiceAsyncProtocol {
+
+    public func execute<ResultType: Decodable>(
+        endpoint: APIEndpoint<ResultType>,
+        decoder: JSONDecoder
+    ) async throws -> ResultType {
+
+        let urlRequest = interceptors?.reduce(endpoint.createURLRequest(baseURL: baseURL)) { partialResult, interceptor in
+            interceptor.before.map { $0(partialResult) } ?? partialResult
+        } ?? endpoint.createURLRequest(baseURL: baseURL)
+
+        let (data, _) = try await URLSession.shared.data(for: urlRequest)
+        let response = try decoder.decode(ResultType.self, from: data)
+
+        return response
     }
     
 }

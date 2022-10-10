@@ -1,12 +1,11 @@
 //
 //  URLRequestBuilder.swift
-//  
+//  MENetworking
 //
 //  Created by Pablo Ezequiel Romero Giovannoni on 25/05/2022.
 //
 
 import Foundation
-import MECore
 
 public enum HTTPMethod {
     case get
@@ -36,7 +35,7 @@ public enum HTTPMethod {
     }
 }
 
-public final class URLBuilder: Builder {
+public final class URLBuilder {
     private var urlComponents: URLComponents
 
     public init(with baseURL: URL) {
@@ -77,7 +76,7 @@ public final class URLBuilder: Builder {
 
 }
 
-public final class URLRequestBuilder: Builder {
+public final class URLRequestBuilder {
     private var urlRequest: URLRequest
 
     public init(with url: URL) {

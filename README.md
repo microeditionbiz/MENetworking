@@ -1,3 +1,3 @@
-# MEFramework
+# MENetworking
 
-A description of this package.
+Helper code to resolve network requests.

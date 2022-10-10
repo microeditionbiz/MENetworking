@@ -1,13 +1,12 @@
 //
 //  DownloadService.swift
-//  MEKit
+//  MENetworking
 //
 //  Created by Pablo Ezequiel Romero Giovannoni on 30/11/2019.
 //  Copyright © 2019 Pablo Ezequiel Romero Giovannoni. All rights reserved.
 //
 
 import Foundation
-import MECore
 
 typealias DownloadServiceCompletion = (_ url: URL,_ localURL: URL,_ error: Error?)->()
   
@@ -57,7 +56,7 @@ class DownloadOperation: AsyncOperation {
                 completionError = downloadError
             } else {
                 do {
-                    try FileSystemHelper.copyFile(at: downloadedURL!, to: self.localURL)
+                    try FileSystemHelper.copyFile(from: downloadedURL!, to: self.localURL)
                 } catch {
                     completionError = error
                 }

@@ -1,12 +1,11 @@
 //
-//  File.swift
-//  
+//  APIEndpoint.swift
+//  MENetworking
 //
 //  Created by Pablo Ezequiel Romero Giovannoni on 26/05/2022.
 //
 
 import Foundation
-import MECore
 
 extension URLSessionDataTask: Cancellable { }
 
