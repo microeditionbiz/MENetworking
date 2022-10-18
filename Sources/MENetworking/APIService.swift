@@ -26,36 +26,14 @@ public struct Interceptor {
 
 public protocol APIServiceProtocol {
     @discardableResult
-    func execute<ResultType: Decodable>(
+    func execute<ResultType>(
         endpoint: APIEndpoint<ResultType>,
-        decoder: JSONDecoder,
         completion: @escaping (Result<ResultType, Error>) -> Void
     ) -> Cancellable
 }
 
-public extension APIServiceProtocol {
-    @discardableResult
-    func execute<ResultType: Decodable>(
-        endpoint: APIEndpoint<ResultType>,
-        completion: @escaping (Result<ResultType, Error>) -> Void
-    ) -> Cancellable {
-        execute(endpoint: endpoint, decoder: .init(), completion: completion)
-    }
-}
-
 public protocol APIServiceAsyncProtocol {
-    func execute<ResultType: Decodable>(
-        endpoint: APIEndpoint<ResultType>,
-        decoder: JSONDecoder
-    ) async throws -> ResultType
-}
-
-public extension APIServiceAsyncProtocol {
-    func execute<ResultType: Decodable>(
-        endpoint: APIEndpoint<ResultType>
-    ) async throws -> ResultType {
-        try await execute(endpoint: endpoint, decoder: .init())
-    }
+    func execute<ResultType>(endpoint: APIEndpoint<ResultType>) async throws -> ResultType
 }
 
 public final class APIService {
@@ -72,9 +50,8 @@ public final class APIService {
 extension APIService: APIServiceProtocol {
 
     @discardableResult
-    public func execute<ResultType: Decodable>(
+    public func execute<ResultType>(
         endpoint: APIEndpoint<ResultType>,
-        decoder: JSONDecoder,
         completion: @escaping (Result<ResultType, Error>) -> Void
     ) -> Cancellable {
 
@@ -88,7 +65,7 @@ extension APIService: APIServiceProtocol {
             } else {
                 if let data = data {
                     do {
-                        let response = try decoder.decode(ResultType.self, from: data)
+                        let response = try endpoint.decode(data)
                         completion(.success(response))
                     } catch {
                         completion(.failure(error))
@@ -108,17 +85,14 @@ extension APIService: APIServiceProtocol {
 
 extension APIService: APIServiceAsyncProtocol {
 
-    public func execute<ResultType: Decodable>(
-        endpoint: APIEndpoint<ResultType>,
-        decoder: JSONDecoder
-    ) async throws -> ResultType {
+    public func execute<ResultType>(endpoint: APIEndpoint<ResultType>) async throws -> ResultType {
 
         let urlRequest = interceptors?.reduce(endpoint.createURLRequest(baseURL: baseURL)) { partialResult, interceptor in
             interceptor.before.map { $0(partialResult) } ?? partialResult
         } ?? endpoint.createURLRequest(baseURL: baseURL)
 
         let (data, _) = try await URLSession.shared.data(for: urlRequest)
-        let response = try decoder.decode(ResultType.self, from: data)
+        let response = try endpoint.decode(data)
 
         return response
     }

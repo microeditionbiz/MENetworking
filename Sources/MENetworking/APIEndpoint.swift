@@ -9,19 +9,22 @@ import Foundation
 
 extension URLSessionDataTask: Cancellable { }
 
-public struct APIEndpoint<ResultType: Decodable> {
+public struct APIEndpoint<ResultType> {
     public let path: String
     public let method: HTTPMethod
     public let queryParameters: [String: CustomStringConvertible]?
+    public let decode: (Data) throws -> ResultType
 
     public init(
         path: String,
         method: HTTPMethod = .get,
-        queryParameters: [String: CustomStringConvertible]? = nil
+        queryParameters: [String: CustomStringConvertible]? = nil,
+        decode: @escaping (Data) throws -> ResultType
     ) {
         self.path = path
         self.method = method
         self.queryParameters = queryParameters
+        self.decode = decode
     }
 
     public func createURLRequest(baseURL: URL) -> URLRequest {
@@ -34,7 +37,37 @@ public struct APIEndpoint<ResultType: Decodable> {
         return URLRequestBuilder
             .init(with: url)
             .with(httpMethod: method)
-            .with(httpBody: method.bodyData)
+            .with(httpBody: method.body)
             .build()
+    }
+}
+
+public extension APIEndpoint where ResultType: Decodable {
+    init(
+        path: String,
+        method: HTTPMethod = .get,
+        queryParameters: [String: CustomStringConvertible]? = nil,
+        decoder: JSONDecoder = .init()
+    ) {
+        self.init(
+            path: path,
+            method: method,
+            queryParameters: queryParameters,
+            decode: { try decoder.decode(ResultType.self, from: $0) } )
+    }
+}
+
+public extension APIEndpoint where ResultType == Void {
+    init(
+        path: String,
+        method: HTTPMethod = .get,
+        queryParameters: [String: CustomStringConvertible]? = nil,
+        decoder: JSONDecoder = .init()
+    ) {
+        self.init(
+            path: path,
+            method: method,
+            queryParameters: queryParameters,
+            decode: { _ in () } )
     }
 }
