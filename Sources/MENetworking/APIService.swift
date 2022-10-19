@@ -12,28 +12,12 @@ public enum APIServiceError: Error {
     case emptyData
 }
 
-public struct Interceptor {
-    public let before: ((URLRequest) -> URLRequest)?
-    public let after: ((URLRequest, URLResponse, Data, Error) -> Void)?
-
-    public init(
-        before: ((URLRequest) -> URLRequest)? = nil,
-        after: ((URLRequest, URLResponse, Data, Error) -> Void)? = nil) {
-        self.before = before
-        self.after = after
-    }
-}
-
 public protocol APIServiceProtocol {
     @discardableResult
     func execute<ResultType>(
         endpoint: APIEndpoint<ResultType>,
         completion: @escaping (Result<ResultType, Error>) -> Void
     ) -> Cancellable
-}
-
-public protocol APIServiceAsyncProtocol {
-    func execute<ResultType>(endpoint: APIEndpoint<ResultType>) async throws -> ResultType
 }
 
 public final class APIService {
@@ -44,7 +28,6 @@ public final class APIService {
         self.baseURL = baseURL
         self.interceptors = interceptors
     }
-
 }
 
 extension APIService: APIServiceProtocol {
@@ -55,9 +38,7 @@ extension APIService: APIServiceProtocol {
         completion: @escaping (Result<ResultType, Error>) -> Void
     ) -> Cancellable {
 
-        let urlRequest = interceptors?.reduce(endpoint.createURLRequest(baseURL: baseURL)) { partialResult, interceptor in
-            interceptor.before.map { $0(partialResult) } ?? partialResult
-        } ?? endpoint.createURLRequest(baseURL: baseURL)
+        let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: interceptors)
 
         let dataTask = URLSession.shared.dataTask(with: urlRequest) { data, _, error in
             if let error = error {
@@ -79,22 +60,6 @@ extension APIService: APIServiceProtocol {
         dataTask.resume()
 
         return dataTask
-    }
-    
-}
-
-extension APIService: APIServiceAsyncProtocol {
-
-    public func execute<ResultType>(endpoint: APIEndpoint<ResultType>) async throws -> ResultType {
-
-        let urlRequest = interceptors?.reduce(endpoint.createURLRequest(baseURL: baseURL)) { partialResult, interceptor in
-            interceptor.before.map { $0(partialResult) } ?? partialResult
-        } ?? endpoint.createURLRequest(baseURL: baseURL)
-
-        let (data, _) = try await URLSession.shared.data(for: urlRequest)
-        let response = try endpoint.decode(data)
-
-        return response
     }
     
 }

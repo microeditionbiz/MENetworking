@@ -9,6 +9,7 @@ import Foundation
 
 public final class URLRequestBuilder {
     private var urlRequest: URLRequest
+    private var beforeInterceptors: [(URLRequest) -> URLRequest]?
 
     public init(with url: URL) {
         urlRequest = .init(url: url)
@@ -34,8 +35,15 @@ public final class URLRequestBuilder {
         }
     }
 
+    public func with(interceptors: [Interceptor]?) -> Self {
+        beforeInterceptors = interceptors?.compactMap(\.before)
+        return self
+    }
+
     public func build() -> URLRequest {
-        return urlRequest
+        beforeInterceptors?.reduce(urlRequest) { partialResult, interceptor in
+            interceptor(partialResult)
+        } ?? urlRequest
     }
 
 }
