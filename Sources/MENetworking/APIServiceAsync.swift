@@ -17,10 +17,21 @@ extension APIService: APIServiceAsyncProtocol {
 
         let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: interceptors)
 
-        let (data, _) = try await URLSession.shared.data(for: urlRequest)
-        let response = try endpoint.decode(data)
+        do {
+            let (data, urlResponse) = try await URLSession.shared.data(for: urlRequest)
+            interceptors?.forEach { interceptor  in
+                interceptor.after?(urlRequest, .success((urlResponse, data)))
+            }
 
-        return response
+            let response = try endpoint.decode(data)
+            return response
+        } catch {
+            interceptors?.forEach { interceptor  in
+                interceptor.after?(urlRequest, .failure(error))
+            }
+
+            throw error
+        }
     }
 
 }

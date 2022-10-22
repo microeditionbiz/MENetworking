@@ -44,11 +44,19 @@ extension APIService: APIServiceProtocol {
 
         let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: interceptors)
 
-        let dataTask = URLSession.shared.dataTask(with: urlRequest) { data, _, error in
+        let dataTask = URLSession.shared.dataTask(with: urlRequest) { [weak self] data, urlResponse, error in
             if let error = error {
+                self?.interceptors?.forEach { interceptor  in
+                    interceptor.after?(urlRequest, .failure(error))
+                }
+
                 completion(.failure(error))
             } else {
-                if let data = data {
+                if let data = data, let urlResponse = urlResponse {
+                    self?.interceptors?.forEach { interceptor  in
+                        interceptor.after?(urlRequest, .success((urlResponse, data)))
+                    }
+
                     do {
                         let response = try endpoint.decode(data)
                         completion(.success(response))

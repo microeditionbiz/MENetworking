@@ -19,6 +19,18 @@ extension APIService: APIServicePublisherProtocol {
         let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: interceptors)
 
         return URLSession.shared.dataTaskPublisher(for: urlRequest)
+            .handleEvents(
+                receiveOutput: { [weak self] (data, urlResponse) in
+                    self?.interceptors?.forEach { interceptor in
+                        interceptor.after?(urlRequest, .success((urlResponse, data)))
+                    }
+                }, receiveCompletion: { [weak self] completion in
+                    guard case let .failure(error) = completion else { return }
+                    self?.interceptors?.forEach { interceptor in
+                        interceptor.after?(urlRequest, .failure(error))
+                    }
+                }
+            )
             .tryMap { result -> ResultType in
                 try endpoint.decode(result.data)
             }
