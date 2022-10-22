@@ -19,16 +19,16 @@ extension APIService: APIServiceAsyncProtocol {
 
         do {
             let (data, urlResponse) = try await URLSession.shared.data(for: urlRequest)
-            interceptors?.forEach { interceptor  in
-                interceptor.after?(urlRequest, .success((urlResponse, data)))
-            }
+            interceptors?
+                .compactMap(\.after)
+                .forEach { $0(urlRequest, .success((urlResponse, data))) }
 
             let response = try endpoint.decode(data)
             return response
         } catch {
-            interceptors?.forEach { interceptor  in
-                interceptor.after?(urlRequest, .failure(error))
-            }
+            interceptors?
+                .compactMap(\.after)
+                .forEach { $0(urlRequest, .failure(error)) }
 
             throw error
         }

@@ -21,14 +21,14 @@ extension APIService: APIServicePublisherProtocol {
         return URLSession.shared.dataTaskPublisher(for: urlRequest)
             .handleEvents(
                 receiveOutput: { [weak self] (data, urlResponse) in
-                    self?.interceptors?.forEach { interceptor in
-                        interceptor.after?(urlRequest, .success((urlResponse, data)))
-                    }
+                    self?.interceptors?
+                        .compactMap(\.after)
+                        .forEach { $0(urlRequest, .success((urlResponse, data))) }
                 }, receiveCompletion: { [weak self] completion in
                     guard case let .failure(error) = completion else { return }
-                    self?.interceptors?.forEach { interceptor in
-                        interceptor.after?(urlRequest, .failure(error))
-                    }
+                    self?.interceptors?
+                        .compactMap(\.after)
+                        .forEach { $0(urlRequest, .failure(error)) }
                 }
             )
             .tryMap { result -> ResultType in

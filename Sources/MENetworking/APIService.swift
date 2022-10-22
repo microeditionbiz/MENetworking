@@ -46,16 +46,16 @@ extension APIService: APIServiceProtocol {
 
         let dataTask = URLSession.shared.dataTask(with: urlRequest) { [weak self] data, urlResponse, error in
             if let error = error {
-                self?.interceptors?.forEach { interceptor  in
-                    interceptor.after?(urlRequest, .failure(error))
-                }
+                self?.interceptors?
+                    .compactMap(\.after)
+                    .forEach { $0(urlRequest, .failure(error)) }
 
                 completion(.failure(error))
             } else {
                 if let data = data, let urlResponse = urlResponse {
-                    self?.interceptors?.forEach { interceptor  in
-                        interceptor.after?(urlRequest, .success((urlResponse, data)))
-                    }
+                    self?.interceptors?
+                        .compactMap(\.after)
+                        .forEach { $0(urlRequest, .success((urlResponse, data))) }
 
                     do {
                         let response = try endpoint.decode(data)
