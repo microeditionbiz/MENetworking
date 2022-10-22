@@ -12,6 +12,10 @@ public enum APIServiceError: Error {
     case emptyData
 }
 
+public protocol Cancellable {
+    func cancel()
+}
+
 public protocol APIServiceProtocol {
     @discardableResult
     func execute<ResultType>(
