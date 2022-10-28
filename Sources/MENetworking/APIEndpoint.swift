@@ -27,7 +27,7 @@ public struct APIEndpoint<ResultType> {
         self.decode = decode
     }
 
-    public func createURLRequest(baseURL: URL, interceptors: [Interceptor]?) -> URLRequest {
+    public func createURLRequest(baseURL: URL, interceptors: [Interceptor.Before]?) -> URLRequest {
         let url = URLBuilder
             .init(with: baseURL)
             .with(path: path)

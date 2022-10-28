@@ -26,11 +26,16 @@ public protocol APIServiceProtocol {
 
 public final class APIService {
     public let baseURL: URL
-    public let interceptors: [Interceptor]?
+    public let beforeInterceptors: [Interceptor.Before]?
+    public let afterInterceptors: [Interceptor.After]?
 
-    public init(baseURL: URL, interceptors: [Interceptor]? = nil) {
-        self.baseURL = baseURL
-        self.interceptors = interceptors
+    public init(
+        baseURL: URL,
+        beforeInterceptors: [Interceptor.Before]? = nil,
+        afterInterceptors: [Interceptor.After]? = nil) {
+            self.baseURL = baseURL
+            self.beforeInterceptors = beforeInterceptors
+            self.afterInterceptors = afterInterceptors
     }
 }
 
@@ -42,19 +47,19 @@ extension APIService: APIServiceProtocol {
         completion: @escaping (Result<ResultType, Error>) -> Void
     ) -> Cancellable {
 
-        let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: interceptors)
+        let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: beforeInterceptors)
 
         let dataTask = URLSession.shared.dataTask(with: urlRequest) { [weak self] data, urlResponse, error in
             if let error = error {
-                self?.interceptors?
-                    .compactMap(\.after)
+                self?.afterInterceptors?
+                    .map(\.apply)
                     .forEach { $0(urlRequest, .failure(error)) }
 
                 completion(.failure(error))
             } else {
                 if let data = data, let urlResponse = urlResponse {
-                    self?.interceptors?
-                        .compactMap(\.after)
+                    self?.afterInterceptors?
+                        .map(\.apply)
                         .forEach { $0(urlRequest, .success((urlResponse, data))) }
 
                     do {

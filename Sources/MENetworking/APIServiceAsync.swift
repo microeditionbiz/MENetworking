@@ -15,19 +15,19 @@ extension APIService: APIServiceAsyncProtocol {
 
     public func execute<ResultType>(endpoint: APIEndpoint<ResultType>) async throws -> ResultType {
 
-        let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: interceptors)
+        let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: beforeInterceptors)
 
         do {
             let (data, urlResponse) = try await URLSession.shared.data(for: urlRequest)
-            interceptors?
-                .compactMap(\.after)
+            afterInterceptors?
+                .map(\.apply)
                 .forEach { $0(urlRequest, .success((urlResponse, data))) }
 
             let response = try endpoint.decode(data)
             return response
         } catch {
-            interceptors?
-                .compactMap(\.after)
+            afterInterceptors?
+                .map(\.apply)
                 .forEach { $0(urlRequest, .failure(error)) }
 
             throw error

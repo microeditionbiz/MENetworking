@@ -16,18 +16,18 @@ extension APIService: APIServicePublisherProtocol {
 
     public func execute<ResultType>(endpoint: APIEndpoint<ResultType>) -> AnyPublisher<ResultType, Error> {
 
-        let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: interceptors)
+        let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: beforeInterceptors)
 
         return URLSession.shared.dataTaskPublisher(for: urlRequest)
             .handleEvents(
                 receiveOutput: { [weak self] (data, urlResponse) in
-                    self?.interceptors?
-                        .compactMap(\.after)
+                    self?.afterInterceptors?
+                        .map(\.apply)
                         .forEach { $0(urlRequest, .success((urlResponse, data))) }
                 }, receiveCompletion: { [weak self] completion in
                     guard case let .failure(error) = completion else { return }
-                    self?.interceptors?
-                        .compactMap(\.after)
+                    self?.afterInterceptors?
+                        .map(\.apply)
                         .forEach { $0(urlRequest, .failure(error)) }
                 }
             )

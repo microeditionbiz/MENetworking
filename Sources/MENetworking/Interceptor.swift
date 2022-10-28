@@ -7,14 +7,20 @@
 
 import Foundation
 
-public struct Interceptor {
-    public let before: ((URLRequest) -> URLRequest)?
-    public let after: ((URLRequest, Result<(URLResponse, Data), Error>) -> Void)?
+public enum Interceptor {
+    public struct Before {
+        public let apply: (URLRequest) -> URLRequest
 
-    public init(
-        before: ((URLRequest) -> URLRequest)? = nil,
-        after: ((URLRequest, Result<(URLResponse, Data), Error>) -> Void)? = nil) {
-        self.before = before
-        self.after = after
+        public init(apply: @escaping (URLRequest) -> URLRequest) {
+            self.apply = apply
+        }
+    }
+
+    public struct After {
+        public let apply: (URLRequest, Result<(URLResponse, Data), Error>) -> Void
+
+        public init(_ apply: @escaping (URLRequest, Result<(URLResponse, Data), Error>) -> Void) {
+            self.apply = apply
+        }
     }
 }
