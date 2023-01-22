@@ -12,16 +12,8 @@ public enum APIServiceError: Error {
     case emptyData
 }
 
-public protocol Cancellable {
-    func cancel()
-}
-
 public protocol APIServiceProtocol {
-    @discardableResult
-    func execute<ResultType>(
-        endpoint: APIEndpoint<ResultType>,
-        completion: @escaping (Result<ResultType, Error>) -> Void
-    ) -> Cancellable
+    func execute<ResultType, ErrorType: APIErrorProtocol>(endpoint: APIEndpoint<ResultType, ErrorType>) async throws -> ResultType
 }
 
 public final class APIService {
@@ -41,42 +33,33 @@ public final class APIService {
 
 extension APIService: APIServiceProtocol {
 
-    @discardableResult
-    public func execute<ResultType>(
-        endpoint: APIEndpoint<ResultType>,
-        completion: @escaping (Result<ResultType, Error>) -> Void
-    ) -> Cancellable {
-
+    public func execute<ResultType, ErrorType: APIErrorProtocol>(endpoint: APIEndpoint<ResultType, ErrorType>) async throws -> ResultType {
         let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: beforeInterceptors)
 
-        let dataTask = URLSession.shared.dataTask(with: urlRequest) { [weak self] data, urlResponse, error in
-            if let error = error {
-                self?.afterInterceptors?
-                    .map(\.apply)
-                    .forEach { $0(urlRequest, .failure(error)) }
+        do {
+            let (data, response) = try await URLSession.shared.data(for: urlRequest)
 
-                completion(.failure(error))
+            if let statusCode = (response as? HTTPURLResponse)?.statusCode, !(200..<300 ~= statusCode) {
+                let decodedError = try? endpoint.decodeError(data)
+                let error: APIError = decodedError.map {
+                    .apiError(code: $0.code ?? "\(statusCode)", message: $0.message)
+                } ?? .apiError(code: "\(statusCode)", message: nil)
+
+                throw error
             } else {
-                if let data = data, let urlResponse = urlResponse {
-                    self?.afterInterceptors?
-                        .map(\.apply)
-                        .forEach { $0(urlRequest, .success((urlResponse, data))) }
+                afterInterceptors?
+                    .map(\.apply)
+                    .forEach { $0(urlRequest, .success((response, data))) }
 
-                    do {
-                        let response = try endpoint.decode(data)
-                        completion(.success(response))
-                    } catch {
-                        completion(.failure(error))
-                    }
-                } else {
-                    completion(.failure(APIServiceError.emptyData))
-                }
+                return try endpoint.decodeResult(data)
             }
-        }
-        
-        dataTask.resume()
+        } catch {
+            afterInterceptors?
+                .map(\.apply)
+                .forEach { $0(urlRequest, .failure(error)) }
 
-        return dataTask
+            throw error
+        }
     }
     
 }

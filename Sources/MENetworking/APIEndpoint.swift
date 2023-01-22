@@ -7,68 +7,99 @@
 
 import Foundation
 
-extension URLSessionDataTask: Cancellable { }
-
-public struct APIEndpoint<ResultType> {
-    public let path: String
-    public let method: HTTPMethod
-    public let queryParameters: [String: CustomStringConvertible]?
-    public let decode: (Data) throws -> ResultType
+public struct APIEndpoint<ResultType, ErrorType> {
+    private let path: String
+    private let method: HTTPMethod
+    private let queryParameters: [String: CustomStringConvertible]?
+    private let httpHeaders: [String: CustomStringConvertible]?
+    let decodeResult: (Data) throws -> ResultType
+    let decodeError: (Data) throws -> ErrorType
 
     public init(
         path: String,
         method: HTTPMethod = .get,
         queryParameters: [String: CustomStringConvertible]? = nil,
-        decode: @escaping (Data) throws -> ResultType
+        httpHeaders: [String: CustomStringConvertible]? = nil,
+        decodeResult: @escaping (Data) throws -> ResultType,
+        decodeError: @escaping (Data) throws -> ErrorType
     ) {
         self.path = path
         self.method = method
         self.queryParameters = queryParameters
-        self.decode = decode
+        self.httpHeaders = httpHeaders
+        self.decodeResult = decodeResult
+        self.decodeError = decodeError
     }
 
     public func createURLRequest(baseURL: URL, interceptors: [Interceptor.Before]?) -> URLRequest {
-        let url = URLBuilder
-            .init(with: baseURL)
-            .with(path: path)
-            .with(queryParams: queryParameters)
-            .build()
+        guard var urlComponents = URLComponents(url: baseURL, resolvingAgainstBaseURL: true) else {
+            fatalError("Error initalizing URLBuilder")
+        }
 
-        return URLRequestBuilder
-            .init(with: url)
-            .with(httpMethod: method)
-            .with(httpBody: method.body)
-            .with(interceptors: interceptors)
-            .build()
+        urlComponents.path = path
+
+        if let queryParameters = queryParameters, !queryParameters.isEmpty {
+            let queryItems: [URLQueryItem] = queryParameters.map {
+                .init(name: $0.key, value: $0.value.description)
+            }
+
+            if urlComponents.queryItems == nil {
+                urlComponents.queryItems = queryItems
+            } else {
+                urlComponents.queryItems?.append(contentsOf: queryItems)
+            }
+        }
+
+        guard let url = urlComponents.url else {
+            fatalError("Error buidling URL")
+        }
+
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = method.name
+        urlRequest.httpBody = method.body
+
+        httpHeaders?.forEach {
+            urlRequest.setValue($0.value.description, forHTTPHeaderField: $0.key)
+        }
+
+        return interceptors?.reduce(urlRequest) { partialResult, interceptor in
+            interceptor.apply(partialResult)
+        } ?? urlRequest
     }
 }
 
-public extension APIEndpoint where ResultType: Decodable {
+public extension APIEndpoint where ResultType: Decodable, ErrorType: Decodable {
     init(
         path: String,
         method: HTTPMethod = .get,
         queryParameters: [String: CustomStringConvertible]? = nil,
-        decoder: JSONDecoder = .init()
+        httpHeaders: [String: CustomStringConvertible]? = nil,
+        decoder: JSONDecoder
     ) {
         self.init(
             path: path,
             method: method,
             queryParameters: queryParameters,
-            decode: { try decoder.decode(ResultType.self, from: $0) } )
+            httpHeaders: httpHeaders,
+            decodeResult: { try decoder.decode(ResultType.self, from: $0) },
+            decodeError: { try decoder.decode(ErrorType.self, from: $0) }
+        )
     }
 }
 
-public extension APIEndpoint where ResultType == Void {
+public extension APIEndpoint where ResultType == Void, ErrorType == Void  {
     init(
         path: String,
         method: HTTPMethod = .get,
         queryParameters: [String: CustomStringConvertible]? = nil,
-        decoder: JSONDecoder = .init()
+        httpHeaders: [String: CustomStringConvertible]? = nil
     ) {
         self.init(
             path: path,
             method: method,
             queryParameters: queryParameters,
-            decode: { _ in () } )
+            decodeResult: { _ in () },
+            decodeError: { _ in () }
+        )
     }
 }
