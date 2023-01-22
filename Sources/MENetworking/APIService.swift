@@ -16,16 +16,21 @@ public protocol APIServiceProtocol {
     func execute<ResultType, ErrorType: APIErrorProtocol>(endpoint: APIEndpoint<ResultType, ErrorType>) async throws -> ResultType
 }
 
+public typealias DataTask = (URLRequest) async throws -> (Data, URLResponse)
+
 public final class APIService {
-    public let baseURL: URL
-    public let beforeInterceptors: [Interceptor.Before]?
-    public let afterInterceptors: [Interceptor.After]?
+    private let baseURL: URL
+    private let dataTask: DataTask
+    private let beforeInterceptors: [Interceptor.Before]?
+    private let afterInterceptors: [Interceptor.After]?
 
     public init(
         baseURL: URL,
+        dataTask: @escaping DataTask = URLSession.shared.data(for:),
         beforeInterceptors: [Interceptor.Before]? = nil,
         afterInterceptors: [Interceptor.After]? = nil) {
             self.baseURL = baseURL
+            self.dataTask = dataTask
             self.beforeInterceptors = beforeInterceptors
             self.afterInterceptors = afterInterceptors
     }
@@ -37,7 +42,7 @@ extension APIService: APIServiceProtocol {
         let urlRequest = endpoint.createURLRequest(baseURL: baseURL, interceptors: beforeInterceptors)
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: urlRequest)
+            let (data, response) = try await dataTask(urlRequest)
 
             if let statusCode = (response as? HTTPURLResponse)?.statusCode, !(200..<300 ~= statusCode) {
                 let decodedError = try? endpoint.decodeError(data)
